@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<head lang="en">
+  <meta charset="utf-8" />
+  <title>Challenge 1</title>
+</head>
+<body>
+  <span id="output"></span>
+  <script>
+    const input = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d";
+    const bytes = Uint8Array.from(input.match(/../g), (s) => parseInt(s, 16));
+    const output = btoa(String.fromCharCode(...bytes));
+    document.getElementById("output").innerText = output;
+  </script>
+</body>

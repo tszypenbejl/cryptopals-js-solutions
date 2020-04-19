@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Challenge 3</title>
+  </head>
+  <body>
+    key: <span id="key"></span><br />
+    output: <span id="output"></span>
+    <script>
+      const input = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736".match(/../g).map((s) => parseInt(s, 16));
+      const frequentLetterCodes = new Set("etaoinshrdlu ETAOINSHRDLU".split("").map((c) => c.charCodeAt(0)));
+      const keyCandidates = [...Array(256).keys()];
+      const bestKey = keyCandidates
+        .map((key) => ({
+          key,
+          score: input.reduce((score, byte) => score + frequentLetterCodes.has(byte ^ key), 0),
+        }))
+        .reduce((bestSoFar, next) => (next.score > bestSoFar.score ? next : bestSoFar), { key: -1, score: -1 }).key;
+      const output = String.fromCharCode(...input.map((byte) => byte ^ bestKey));
+      document.getElementById("key").innerText = bestKey.toString();
+      document.getElementById("output").innerText = output;
+    </script>
+  </body>
+</html>

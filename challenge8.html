@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<head lang="en">
+  <meta charset="utf-8" />
+  <title>Challenge 8</title>
+  <script src="8.txt.js"></script>
+</head>
+<body>
+  <span id="message"></span>
+  <script>
+    const range = (start, end) => [...Array(end - start).keys()].map((n) => n + start);
+    const splitIntoBlocks = (arr, blockSize, blockCount) => range(0, blockCount).map((i) => arr.slice(i * blockSize, (i + 1) * blockSize));
+
+    const BLOCK_SIZE = 16; // bytes
+    const HEX_BLOCK_SIZE = 2 * BLOCK_SIZE;
+
+    const inputs = inputText.split("\n");
+    const { lineIndex, blockDuplicateCount } = inputs
+      .map((input, lineIndex) => {
+        const blocks = splitIntoBlocks(input, HEX_BLOCK_SIZE, Math.floor(input.length / HEX_BLOCK_SIZE));
+        const blockDuplicateCount = blocks.length - new Set(blocks).size;
+        return { lineIndex, blockDuplicateCount };
+      })
+      .filter((lineStats) => lineStats.blockDuplicateCount > 0)
+      .sort((a, b) => -(a.blockDuplicateCount - b.blockDuplicateCount))[0];
+    document.getElementById("message").innerText = `Line ${lineIndex + 1} is likely encrypted with ECB as it contains ${blockDuplicateCount} repeated blocks.`;
+  </script>
+</body>

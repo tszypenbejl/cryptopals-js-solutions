@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Challenge 4</title>
+    <script src="4.txt.js"></script>
+  </head>
+  <body>
+    <span id="output-message"></span>
+    <script>
+      const frequentLetterCodes = new Set("etaoinshrdlu ETAOINSHRDLU".split("").map((c) => c.charCodeAt(0)));
+      const keyCandidates = [...Array(256).keys()];
+
+      const findXorKey = (input) =>
+        keyCandidates
+          .map((key) => ({
+            key,
+            score: input.reduce((score, byte) => score + frequentLetterCodes.has(byte ^ key), 0),
+          }))
+          .reduce((bestSoFar, next) => (next.score > bestSoFar.score ? next : bestSoFar), { score: -1 });
+
+      const encryptedInputs = inputText.split("\n").map((line) => line.match(/../g).map((s) => parseInt(s, 16)));
+      const { input, lineIndex, key } = encryptedInputs
+        .map((input, lineIndex) => ({ input, lineIndex, ...findXorKey(input) }))
+        .reduce((bestSoFar, next) => (next.score > bestSoFar.score ? next : bestSoFar), { score: -1 });
+      const output = String.fromCharCode(...input.map((byte) => byte ^ key));
+      document.getElementById("output-message").innerText = `Line ${lineIndex + 1} can be decrypted with key ${key}: ${JSON.stringify(output)}`;
+    </script>
+  </body>
+</html>

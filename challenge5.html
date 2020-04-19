@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<head lang="en">
+  <meta charset="utf-8" />
+  <title>Challenge 5</title>
+</head>
+<body>
+  <span id="output"></span>
+  <script>
+    const inputText = `Burning 'em, if you ain't quick and nimble
+I go crazy when I hear a cymbal`;
+    const toHexStr = (byteArray) => byteArray.map((byte) => byte.toString(16).padStart(2, 0)).join("");
+    const strToBytes = (str) => str.split("").map((c) => c.charCodeAt(0));
+    const input = strToBytes(inputText);
+    const key = strToBytes("ICE");
+    const output = input.map((byte, index) => byte ^ key[index % key.length]);
+    document.getElementById("output").innerText = toHexStr(output);
+  </script>
+</body>

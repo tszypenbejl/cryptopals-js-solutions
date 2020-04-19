@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Challenge 2</title>
+  </head>
+  <body>
+    <span id="output"></span>
+    <script>
+      const fromHexStr = (hexStr) => hexStr.match(/../g).map((s) => parseInt(s, 16));
+      const toHexStr = (byteArray) => byteArray.map((byte) => byte.toString(16).padStart(2, 0)).join("");
+      const input = fromHexStr("1c0111001f010100061a024b53535009181c");
+      const key = fromHexStr("686974207468652062756c6c277320657965");
+      const output = input.map((byte, index) => byte ^ key[index]);
+      document.getElementById("output").innerText = toHexStr(output);
+    </script>
+  </body>
+</html>

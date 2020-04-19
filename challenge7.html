@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<head lang="en">
+  <meta charset="utf-8" />
+  <title>Challenge 7</title>
+  <script src="7.txt.js"></script>
+  <script src="3rd-party/rickmoo-aes.js"></script>
+  <!-- from https://github.com/ricmoo/aes-js (MIT license) -->
+</head>
+<body>
+  <pre id="output"></pre>
+  <script>
+    const input = atob(inputText)
+      .split("")
+      .map((s) => s.charCodeAt(0));
+    const aesEcb = new aesjs.ModeOfOperation.ecb(aesjs.utils.utf8.toBytes("YELLOW SUBMARINE"));
+    const output = aesjs.padding.pkcs7.strip(aesEcb.decrypt(input));
+    document.getElementById("output").innerText = aesjs.utils.utf8.fromBytes(output);
+  </script>
+</body>
