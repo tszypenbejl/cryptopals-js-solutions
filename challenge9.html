@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<head lang="en">
+  <meta charset="utf-8" />
+  <title>Challenge 9</title>
+</head>
+<body>
+  <span id="message1"></span><br />
+  <span id="message2"></span>
+  <script>
+    const pkcs7pad = (data, blockLength) => {
+      const trailingBytesCount = data.length % blockLength;
+      if (trailingBytesCount === 0) return data;
+      const padding = blockLength - trailingBytesCount;
+      return data.concat(Array(padding).fill(padding));
+    };
+
+    const input = "YELLOW SUBMARINE".split("").map((c) => c.charCodeAt(0));
+    const output = pkcs7pad(input, 5);
+    document.getElementById("message1").innerText = output.map((byte) => byte.toString(16).padStart(2, 0)).join(", ");
+    document.getElementById("message2").innerText = JSON.stringify(String.fromCharCode(...output));
+  </script>
+</body>
