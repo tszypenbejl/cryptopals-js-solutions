@@ -1,7 +1,6 @@
 const pkcs7pad = (data, blockLength) => {
   const trailingBytesCount = data.length % blockLength;
-  if (trailingBytesCount === 0) return data;
-  const padding = blockLength - trailingBytesCount;
+  const padding = trailingBytesCount === 0 ? blockLength : blockLength - trailingBytesCount;
   return Buffer.concat([data, Uint8Array.from(Array(padding), () => padding)]);
 };
 
