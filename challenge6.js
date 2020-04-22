@@ -42,7 +42,7 @@ const findXorKey = (input) =>
     })
     .sort((a, b) => -(a.score - b.score))[0].key;
 
-  const output = String.fromCharCode(...input.map((byte, index) => byte ^ theKey[index % theKey.length]));
+  const output = input.map((byte, index) => byte ^ theKey[index % theKey.length]).toString();
   console.log(theKey);
   console.log(output);
 })();

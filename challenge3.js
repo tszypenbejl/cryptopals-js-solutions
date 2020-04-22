@@ -7,6 +7,6 @@ const bestKey = keyCandidates
     score: input.reduce((score, byte) => score + frequentLetterCodes.has(byte ^ key), 0),
   }))
   .reduce((bestSoFar, next) => (next.score > bestSoFar.score ? next : bestSoFar), { key: -1, score: -1 }).key;
-const output = String.fromCharCode(...input.map((byte) => byte ^ bestKey));
+const output = input.map((byte) => byte ^ bestKey).toString();
 console.log(bestKey);
 console.log(output);

@@ -15,9 +15,10 @@ const pkcs7pad = (data, blockLength) => {
 const pkcs7unpad = (data) => data.slice(0, data.length - data[data.length - 1]);
 
 const BLOCK_SIZE = 128 / 8; // bytes
+const PASSWORD = "YELLOW SUBMARINE";
 
 const my128CbcEncrypt = (input, iv) => {
-  const ecbCipher = createCipheriv("aes-128-ecb", "YELLOW SUBMARINE", null).setAutoPadding(false);
+  const ecbCipher = createCipheriv("aes-128-ecb", PASSWORD, null).setAutoPadding(false);
   const paddedInput = pkcs7pad(input, BLOCK_SIZE);
   const inputBlocks = splitIntoBlocks(paddedInput, BLOCK_SIZE, paddedInput.length / BLOCK_SIZE);
   const encryptedBlocks = [];
@@ -28,7 +29,7 @@ const my128CbcEncrypt = (input, iv) => {
 };
 
 const my128CbcDecrypt = (input, iv) => {
-  const ecbDecipher = createDecipheriv("aes-128-ecb", "YELLOW SUBMARINE", null).setAutoPadding(false);
+  const ecbDecipher = createDecipheriv("aes-128-ecb", PASSWORD, null).setAutoPadding(false);
   const inputBlocks = splitIntoBlocks(input, BLOCK_SIZE, input.length / BLOCK_SIZE);
   inputBlocks[-1] = iv;
   const decryptedBlocks = inputBlocks.map((block, index) => xorByteArrays(ecbDecipher.update(block), inputBlocks[index - 1]));
@@ -37,7 +38,7 @@ const my128CbcDecrypt = (input, iv) => {
 };
 
 const testIv = Buffer.from(Uint8Array.from(Array(16).keys()));
-for (const testString of ["yellow submarine", "", "whatever", "something longer than one block"]) {
+for (const testString of ["yellow submarine", "", "whatever", "something longer than one block", "Привет, мир!"]) {
   const testData = Buffer.from(testString);
   if (my128CbcDecrypt(my128CbcEncrypt(testData, testIv), testIv).compare(testData) !== 0) throw new Error(`Test failed for '${testString}'`);
 }

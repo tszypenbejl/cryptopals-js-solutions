@@ -50,7 +50,7 @@
       })
       .sort((a, b) => -(a.score - b.score))[0].key;
 
-    const output = String.fromCharCode(...input.map((byte, index) => byte ^ theKey[index % theKey.length]));
+    const output = new TextDecoder().decode(Uint8Array.from(input.map((byte, index) => byte ^ theKey[index % theKey.length])));
     document.getElementById("key").innerText = theKey.toString();
     document.getElementById("output").innerText = output;
   </script>

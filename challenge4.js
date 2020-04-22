@@ -17,6 +17,6 @@ const findXorKey = (input) =>
   const { input, lineIndex, key } = encryptedInputs
     .map((input, lineIndex) => ({ input, lineIndex, ...findXorKey(input) }))
     .reduce((bestSoFar, next) => (next.score > bestSoFar.score ? next : bestSoFar), { score: -1 });
-  const output = String.fromCharCode(...input.map((byte) => byte ^ key));
+  const output = input.map((byte) => byte ^ key).toString();
   console.log(`Line ${lineIndex + 1} can be decrypted with key ${key}: ${JSON.stringify(output)}`);
 })();
