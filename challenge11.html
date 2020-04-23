@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<head lang="en">
+  <meta charset="utf-8" />
+  <title>Challenge 11</title>
+  <script src="3rd-party/rickmoo-aes.js"></script>
+  <!-- from https://github.com/ricmoo/aes-js (MIT license) -->
+</head>
+<body>
+  <span id="message"></span>
+  <script>
+    const range = (start, end) => [...Array(end - start).keys()].map((n) => n + start);
+    const splitIntoBlocks = (arr, blockSize, blockCount) => range(0, blockCount).map((i) => arr.slice(i * blockSize, (i + 1) * blockSize));
+    const xorByteArrays = (array1, array2) => array1.map((byte1, index) => byte1 ^ array2[index % array2.length]);
+    const randomIntegerInRange = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const randomByteArray = (size) => [...Array(size)].map(() => randomIntegerInRange(0, 255));
+
+    const pkcs7pad = (data, blockLength) => {
+      const trailingBytesCount = data.length % blockLength;
+      const padding = trailingBytesCount === 0 ? blockLength : blockLength - trailingBytesCount;
+      return data.concat(Array(padding).fill(padding));
+    };
+
+    const BLOCK_SIZE = 128 / 8; // bytes
+
+    const my128CbcEncrypt = (input, password, iv) => {
+      const aesEcb = new aesjs.ModeOfOperation.ecb(password);
+      const paddedInput = pkcs7pad(input, BLOCK_SIZE);
+      const inputBlocks = splitIntoBlocks(paddedInput, BLOCK_SIZE, paddedInput.length / BLOCK_SIZE);
+      const encryptedBlocks = [];
+      encryptedBlocks[-1] = iv;
+      inputBlocks.forEach((inputBlock, index) => encryptedBlocks.push(Array.from(aesEcb.encrypt(xorByteArrays(inputBlock, encryptedBlocks[index - 1])))));
+      return [].concat(...encryptedBlocks);
+    };
+
+    let lastEncryptionMethod = "";
+
+    const my123EcbOrCbcEncrypt = (input) => {
+      const password = Uint8Array.from(randomByteArray(BLOCK_SIZE));
+      input = [].concat(randomByteArray(randomIntegerInRange(5, 10)), input, randomByteArray(randomIntegerInRange(5, 10)));
+      if (Math.random() >= 0.5) {
+        lastEncryptionMethod = "ECB";
+        return new aesjs.ModeOfOperation.ecb(password).encrypt(aesjs.padding.pkcs7.pad(input));
+      } else {
+        lastEncryptionMethod = "CBC";
+        return my128CbcEncrypt(input, password, randomByteArray(BLOCK_SIZE));
+      }
+    };
+
+    const testInput = Array(3 * BLOCK_SIZE).fill("x".charCodeAt(0));
+
+    const detectEncryption = (encryptFunction) => {
+      const encryptedBlocks = splitIntoBlocks(encryptFunction(testInput), BLOCK_SIZE, 3);
+      return JSON.stringify(encryptedBlocks[1]) === JSON.stringify(encryptedBlocks[2]) ? "ECB" : "CBC";
+    };
+
+    const TEST_COUNT = 1000;
+    for (let i = 0; i < TEST_COUNT; ++i) {
+      const detectedEncryption = detectEncryption(my123EcbOrCbcEncrypt);
+      if (detectedEncryption !== lastEncryptionMethod) {
+        alert(`Failed to detect encryption after ${i} successful attempts`);
+        throw new Error("Test failed");
+      }
+    }
+    document.getElementById("message").innerText = `Successfully detected encryption ${TEST_COUNT} times.`;
+  </script>
+</body>
