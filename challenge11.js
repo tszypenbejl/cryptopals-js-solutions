@@ -27,7 +27,7 @@ const my128CbcEncrypt = (input, password, iv) => {
 
 let lastEncryptionMethod = "";
 
-const my123EcbOrCbcEncrypt = (input) => {
+const my128EcbOrCbcEncrypt = (input) => {
   const password = randomUint8Array(BLOCK_SIZE);
   input = Buffer.concat([randomUint8Array(randomIntegerInRange(5, 10)), input, randomUint8Array(randomIntegerInRange(5, 10))]);
   if (Math.random() >= 0.5) {
@@ -49,7 +49,7 @@ const detectEncryption = (encryptFunction) => {
 
 const TEST_COUNT = 1000;
 for (let i = 0; i < TEST_COUNT; ++i) {
-  const detectedEncryption = detectEncryption(my123EcbOrCbcEncrypt);
+  const detectedEncryption = detectEncryption(my128EcbOrCbcEncrypt);
   if (detectedEncryption !== lastEncryptionMethod) throw new Error(`Failed to detect encryption after ${i} successful attempts`);
 }
 console.log(`Successfully detected encryption ${TEST_COUNT} times.`);
