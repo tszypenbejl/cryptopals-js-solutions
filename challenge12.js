@@ -8,6 +8,7 @@ YnkK`;
 const range = (start, end) => [...Array(end - start).keys()].map((n) => n + start);
 const randomIntegerInRange = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 const randomUint8Array = (size) => Uint8Array.from(Array(size), () => randomIntegerInRange(0, 255));
+
 function* ascendingIntegers(start = 0) {
   for (let i = start; ; ++i) yield i;
 }
@@ -26,10 +27,10 @@ const encrypt = (input) => {
   return Buffer.concat([cipher.update(Buffer.concat([input, secretText])), cipher.final()]);
 };
 
-const produceInput = (length) => Buffer.from("A".repeat(length));
+const produceAaaInput = (length) => Buffer.from("A".repeat(length));
 
 const determineBlockSize = (encryptFunction) => {
-  const encryptedLength = (inputLength) => encryptFunction(produceInput(inputLength)).length;
+  const encryptedLength = (inputLength) => encryptFunction(produceAaaInput(inputLength)).length;
   const minOutputLen = encryptedLength(0);
   const inputLen1 = findInIterator(ascendingIntegers(1), (inputLength) => encryptedLength(inputLength) > minOutputLen);
   const outputLen1 = encryptedLength(inputLen1);
@@ -38,7 +39,7 @@ const determineBlockSize = (encryptFunction) => {
 };
 
 const revealSecretText = (encryptFunction) => {
-  const expectedBytes = range(" ".charCodeAt(0), "~".charCodeAt(0))
+  const expectedBytes = range(" ".charCodeAt(0), "~".charCodeAt(0) + 1)
     .reverse()
     .concat("\n\r\t".split("").map((c) => c.charCodeAt(0)));
   const blockSize = determineBlockSize(encryptFunction);
@@ -48,7 +49,7 @@ const revealSecretText = (encryptFunction) => {
   const doReveal = (revealedPiece) => {
     const currentBlockIndex = Math.floor(revealedPiece.length / blockSize);
     const aaaLength = blockSize - 1 - (revealedPiece.length % blockSize);
-    const aaaInput = produceInput(aaaLength);
+    const aaaInput = produceAaaInput(aaaLength);
     const encryptedAaaInput = encryptFunction(aaaInput);
     const lastEncryptedBlockIndex = encryptedAaaInput.length / blockSize - 1;
     if (currentBlockIndex >= lastEncryptedBlockIndex) return revealedPiece;
