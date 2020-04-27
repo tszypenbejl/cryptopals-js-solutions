@@ -15,7 +15,7 @@
 
     const range = (start, end) => [...Array(end - start).keys()].map((n) => n + start);
     const randomIntegerInRange = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-    const randomByteArray = (size) => [...Array(size)].map(() => randomIntegerInRange(0, 255));
+    const randomUint8Array = (size) => Uint8Array.from(Array(size), () => randomIntegerInRange(0, 255));
 
     function* ascendingIntegers(start = 0) {
       for (let i = start; ; ++i) yield i;
@@ -27,7 +27,7 @@
       else return predicate(value) ? value : findInIterator(iter, predicate);
     };
 
-    const password = Uint8Array.from(randomByteArray(128 / 8));
+    const password = randomUint8Array(128 / 8);
     const encrypter = new aesjs.ModeOfOperation.ecb(password);
     const secretText = atob(inputText);
     const encrypt = (input) => encrypter.encrypt(aesjs.padding.pkcs7.pad(aesjs.utils.utf8.toBytes(input + secretText)));
