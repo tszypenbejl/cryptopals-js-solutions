@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<head lang="en">
+  <meta charset="utf-8" />
+  <title>Challenge 14</title>
+  <script src="3rd-party/rickmoo-aes.js"></script>
+  <!-- from https://github.com/ricmoo/aes-js (MIT license) -->
+</head>
+<body>
+  <pre id="output"></pre>
+  <script>
+    const inputText = `Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg
+        aGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq
+        dXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg
+        YnkK`;
+
+    const range = (start, end) => [...Array(end - start).keys()].map((n) => n + start);
+    const randomIntegerInRange = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const randomByteArray = (size) => [...Array(size)].map(() => randomIntegerInRange(0, 255));
+    const splitIntoBlocks = (arr, blockSize, blockCount) => range(0, blockCount).map((i) => arr.slice(i * blockSize, (i + 1) * blockSize));
+    const getNthBlock = (arr, blockSize, n) => arr.slice(n * blockSize, (n + 1) * blockSize);
+
+    function* ascendingIntegers(start = 0) {
+      for (let i = start; ; ++i) yield i;
+    }
+
+    const findInIterator = (iter, predicate) => {
+      const { value, done } = iter.next();
+      if (done) return undefined;
+      else return predicate(value) ? value : findInIterator(iter, predicate);
+    };
+
+    const password = Uint8Array.from(randomByteArray(128 / 8));
+    const randomPrefix = String.fromCharCode(randomByteArray(randomIntegerInRange(1, 100)));
+    const encrypter = new aesjs.ModeOfOperation.ecb(password);
+    const secretText = atob(inputText);
+    const encrypt = (input) => encrypter.encrypt(aesjs.padding.pkcs7.pad(aesjs.utils.utf8.toBytes(randomPrefix + input + secretText)));
+
+    const produceAaaInput = (length) => "A".repeat(length);
+
+    const determineBlockSize = (encryptFunction) => {
+      const encryptedLength = (inputLength) => encryptFunction(produceAaaInput(inputLength)).length;
+      const minOutputLen = encryptedLength(0);
+      const inputLen1 = findInIterator(ascendingIntegers(1), (inputLength) => encryptedLength(inputLength) > minOutputLen);
+      const outputLen1 = encryptedLength(inputLen1);
+      const inputLen2 = findInIterator(ascendingIntegers(inputLen1 + 1), (inputLength) => encryptedLength(inputLength) > outputLen1);
+      return inputLen2 - inputLen1;
+    };
+
+    const determineInputOffset = (encryptFunction, blockSize) => {
+      const encryptedData1 = encryptFunction("");
+      const encryptedData2 = encryptFunction("a");
+      const encryptedBlocks1 = splitIntoBlocks(encryptedData1, blockSize, encryptedData1.length);
+      const encryptedBlocks2 = splitIntoBlocks(encryptedData2, blockSize, encryptedData2.length);
+      const firstDifferentBlockIndex = encryptedBlocks1.findIndex((block1, index) => JSON.stringify(block1) !== JSON.stringify(encryptedBlocks2[index]));
+      const aaaOnlyEncryptedBlock = getNthBlock(encryptFunction(produceAaaInput(3 * blockSize)), blockSize, firstDifferentBlockIndex + 1);
+      const aaaLengthInFirstDifferentBlock =
+        range(blockSize, 2 * blockSize + 1).find((aaaLength) => {
+          const aaazInput = produceAaaInput(aaaLength) + "z";
+          return JSON.stringify(getNthBlock(encryptFunction(aaazInput), blockSize, firstDifferentBlockIndex + 1)) === JSON.stringify(aaaOnlyEncryptedBlock);
+        }) - blockSize;
+      return blockSize * firstDifferentBlockIndex + (blockSize - aaaLengthInFirstDifferentBlock);
+    };
+
+    const revealSecretText = (encryptFunction) => {
+      const expectedChars = (String.fromCharCode(...range(" ".charCodeAt(0), "~".charCodeAt(0) + 1).reverse()) + "\n\r\t").split("");
+      const blockSize = determineBlockSize(encryptFunction);
+      const inputOffset = determineInputOffset(encryptFunction, blockSize);
+      const blocksToSkip = Math.ceil(inputOffset / blockSize);
+      const aaaPaddingLength = blockSize * blocksToSkip - inputOffset;
+      const aaaPadding = produceAaaInput(aaaPaddingLength);
+
+      const doReveal = (revealedPiece) => {
+        const currentBlockIndex = blocksToSkip + Math.floor(revealedPiece.length / blockSize);
+        const aaaLength = blockSize - 1 - (revealedPiece.length % blockSize);
+        const aaaInput = produceAaaInput(aaaLength);
+        const encryptedPaddedAaaInput = encryptFunction(aaaPadding + aaaInput);
+        const lastEncryptedBlockIndex = encryptedPaddedAaaInput.length / blockSize - 1;
+        if (currentBlockIndex >= lastEncryptedBlockIndex) return revealedPiece;
+        const encryptedBlockToMatch = getNthBlock(encryptedPaddedAaaInput, blockSize, currentBlockIndex);
+        const blockSizeLessOneInput =
+          revealedPiece.length >= blockSize - 1
+            ? revealedPiece.slice(revealedPiece.length - (blockSize - 1), revealedPiece.length)
+            : produceAaaInput(blockSize - 1 - revealedPiece.length) + revealedPiece;
+        const nextRevealedChar = expectedChars.find(
+          (chr) =>
+            JSON.stringify(encryptedBlockToMatch) ===
+            JSON.stringify(getNthBlock(encryptFunction(aaaPadding + blockSizeLessOneInput + chr), blockSize, blocksToSkip))
+        );
+        if (nextRevealedChar == undefined) throw new Error("expectedChars in revealSecretText misses something");
+        return doReveal(revealedPiece + nextRevealedChar);
+      };
+
+      return doReveal("");
+    };
+
+    const secretTextRevealed = revealSecretText(encrypt);
+    document.getElementById("output").innerText = secretTextRevealed;
+
+    if (secretTextRevealed !== secretText) alert("Did not really get the secret text");
+  </script>
+</body>

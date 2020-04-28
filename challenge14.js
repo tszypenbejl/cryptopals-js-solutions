@@ -42,20 +42,18 @@ const determineBlockSize = (encryptFunction) => {
 };
 
 const determineInputOffset = (encryptFunction, blockSize) => {
-  const encryptedData = encryptFunction(produceAaaInput(3 * blockSize));
-  const encryptedBlocks = splitIntoBlocks(encryptedData, blockSize, encryptedData.length / blockSize);
-  const indexOfFirstBlockContainingOnlyAaa = encryptedBlocks.findIndex(
-    (block, index) => index < encryptedBlocks.length - 1 && block.compare(encryptedBlocks[index + 1]) == 0
-  );
-  if (indexOfFirstBlockContainingOnlyAaa === 0) return 0;
-  const aaaOnlyEncryptedBlock = encryptedBlocks[indexOfFirstBlockContainingOnlyAaa];
-  const previousBlockIndex = indexOfFirstBlockContainingOnlyAaa - 1;
-  const aaaLengthInPreviousBlock =
-    range(blockSize, 2 * blockSize).find((aaaLength) => {
+  const encryptedData1 = encryptFunction(Buffer.from(""));
+  const encryptedData2 = encryptFunction(Buffer.from("a"));
+  const encryptedBlocks1 = splitIntoBlocks(encryptedData1, blockSize, encryptedData1.length);
+  const encryptedBlocks2 = splitIntoBlocks(encryptedData2, blockSize, encryptedData2.length);
+  const firstDifferentBlockIndex = encryptedBlocks1.findIndex((block1, index) => block1.compare(encryptedBlocks2[index]) !== 0);
+  const aaaOnlyEncryptedBlock = getNthBlock(encryptFunction(produceAaaInput(3 * blockSize)), blockSize, firstDifferentBlockIndex + 1);
+  const aaaLengthInFirstDifferentBlock =
+    range(blockSize, 2 * blockSize + 1).find((aaaLength) => {
       const aaazInput = Buffer.of(...produceAaaInput(aaaLength), "z".charCodeAt(0));
-      return getNthBlock(encryptFunction(aaazInput), blockSize, indexOfFirstBlockContainingOnlyAaa).compare(aaaOnlyEncryptedBlock) == 0;
+      return getNthBlock(encryptFunction(aaazInput), blockSize, firstDifferentBlockIndex + 1).compare(aaaOnlyEncryptedBlock) == 0;
     }) - blockSize;
-  return blockSize * previousBlockIndex + (blockSize - aaaLengthInPreviousBlock);
+  return blockSize * firstDifferentBlockIndex + (blockSize - aaaLengthInFirstDifferentBlock);
 };
 
 const revealSecretText = (encryptFunction) => {
@@ -66,21 +64,25 @@ const revealSecretText = (encryptFunction) => {
   const inputOffset = determineInputOffset(encryptFunction, blockSize);
   const blocksToSkip = Math.ceil(inputOffset / blockSize);
   const aaaPaddingLength = blockSize * blocksToSkip - inputOffset;
+  const aaaPadding = produceAaaInput(aaaPaddingLength);
 
   const doReveal = (revealedPiece) => {
     const currentBlockIndex = blocksToSkip + Math.floor(revealedPiece.length / blockSize);
-    const aaaLength = aaaPaddingLength + blockSize - 1 - (revealedPiece.length % blockSize);
+    const aaaLength = blockSize - 1 - (revealedPiece.length % blockSize);
     const aaaInput = produceAaaInput(aaaLength);
-    const encryptedAaaInput = encryptFunction(aaaInput);
-    const lastEncryptedBlockIndex = encryptedAaaInput.length / blockSize - 1;
+    const encryptedPaddedAaaInput = encryptFunction(Buffer.concat([aaaPadding, aaaInput]));
+    const lastEncryptedBlockIndex = encryptedPaddedAaaInput.length / blockSize - 1;
     if (currentBlockIndex >= lastEncryptedBlockIndex) return revealedPiece;
-    const encryptedBlockToMatch = getNthBlock(encryptedAaaInput, blockSize, currentBlockIndex);
-    const paddedBlockSizeLessOneInput = Buffer.concat([aaaInput, revealedPiece]).slice(
-      aaaLength + revealedPiece.length - aaaPaddingLength - blockSize + 1,
-      aaaLength + revealedPiece.length // I am not proud of this piece of code here, perhaps will find a way to simplify it later
-    );
+    const encryptedBlockToMatch = getNthBlock(encryptedPaddedAaaInput, blockSize, currentBlockIndex);
+    const blockSizeLessOneInput =
+      revealedPiece.length >= blockSize - 1
+        ? revealedPiece.slice(revealedPiece.length - (blockSize - 1), revealedPiece.length)
+        : Buffer.concat([produceAaaInput(blockSize - 1 - revealedPiece.length), revealedPiece]);
     const nextRevealedByte = expectedBytes.find(
-      (byte) => getNthBlock(encryptFunction(Buffer.of(...paddedBlockSizeLessOneInput, byte)), blockSize, blocksToSkip).compare(encryptedBlockToMatch) === 0
+      (byte) =>
+        encryptedBlockToMatch.compare(
+          getNthBlock(encryptFunction(Buffer.concat([aaaPadding, blockSizeLessOneInput, Buffer.of(byte)])), blockSize, blocksToSkip)
+        ) === 0
     );
     if (nextRevealedByte == undefined) throw new Error("expectedBytes in revealSecretText misses something");
     return doReveal(Buffer.of(...revealedPiece, nextRevealedByte));
