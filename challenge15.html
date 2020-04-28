@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<head lang="en">
+  <meta charset="utf-8" />
+  <title>Challenge 15</title>
+</head>
+<body>
+  <pre id="output"></pre>
+  <script>
+    const asciiToBytes = (str) => str.split("").map((c) => c.charCodeAt(0));
+    const bytesToAscii = (bytes) => String.fromCharCode(...bytes);
+
+    const pkcs7unpad = (data) => {
+      if (data.length === 0) throw new Error("Invalid padding");
+      const paddingByte = data[data.length - 1];
+      if (data.length < paddingByte || data.slice(data.length - paddingByte).some((byte) => byte !== paddingByte)) throw new Error("Invalid padding");
+      return data.slice(0, data.length - paddingByte);
+    };
+
+    const output = document.getElementById("output");
+
+    const validPaddingString = "ICE ICE BABY\x04\x04\x04\x04";
+    output.innerText += `OK Removed padding from ${JSON.stringify(validPaddingString)} and got ${JSON.stringify(
+      bytesToAscii(pkcs7unpad(asciiToBytes(validPaddingString)))
+    )}\n`;
+
+    for (invalidPaddingString of ["ICE ICE BABY\x05\x05\x05\x05", "ICE ICE BABY\x01\x02\x03\x04"]) {
+      try {
+        pkcs7unpad(asciiToBytes(invalidPaddingString));
+        output.innerText += `FAIL Failed to discover invalid padding in ${JSON.stringify(invalidPaddingString)}\n`;
+      } catch (e) {
+        output.innerText += `OK Detected invalid padding in ${JSON.stringify(invalidPaddingString)}\n`;
+      }
+    }
+  </script>
+</body>
