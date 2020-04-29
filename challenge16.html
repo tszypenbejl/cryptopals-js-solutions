@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<head lang="en">
+  <meta charset="utf-8" />
+  <title>Challenge 16</title>
+  <script src="3rd-party/rickmoo-aes.js"></script>
+  <!-- from https://github.com/ricmoo/aes-js (MIT license) -->
+</head>
+<body>
+  Encrypted admin data:
+  <pre id="output"></pre>
+  <script>
+    const range = (start, end) => [...Array(end - start).keys()].map((n) => n + start);
+    const splitIntoBlocks = (arr, blockSize, blockCount) => range(0, blockCount).map((i) => arr.slice(i * blockSize, (i + 1) * blockSize));
+    const xorByteArrays = (array1, array2) => array1.map((byte1, index) => byte1 ^ array2[index % array2.length]);
+    const randomIntegerInRange = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const randomUint8Array = (size) => Uint8Array.from(Array(size), () => randomIntegerInRange(0, 255));
+
+    const pkcs7pad = (data, blockLength) => {
+      const trailingBytesCount = data.length % blockLength;
+      const padding = trailingBytesCount === 0 ? blockLength : blockLength - trailingBytesCount;
+      return [...data].concat(Array(padding).fill(padding)); // data might be Uint8Array here, hence the spread operator trick
+    };
+
+    const pkcs7unpad = (data) => {
+      if (data.length === 0) throw new Error("Invalid padding");
+      const paddingByte = data[data.length - 1];
+      if (data.length < paddingByte || data.slice(data.length - paddingByte).some((byte) => byte !== paddingByte)) throw new Error("Invalid padding");
+      return data.slice(0, data.length - paddingByte);
+    };
+
+    const BLOCK_SIZE = 128 / 8; // bytes
+    const PASSWORD = randomUint8Array(BLOCK_SIZE);
+    const IV = randomUint8Array(BLOCK_SIZE);
+
+    const my128CbcEncrypt = (input) => {
+      const aesEcb = new aesjs.ModeOfOperation.ecb(PASSWORD);
+      const paddedInput = pkcs7pad(input, BLOCK_SIZE);
+      const inputBlocks = splitIntoBlocks(paddedInput, BLOCK_SIZE, paddedInput.length / BLOCK_SIZE);
+      const encryptedBlocks = [];
+      encryptedBlocks[-1] = IV;
+      inputBlocks.forEach((inputBlock, index) => encryptedBlocks.push(Array.from(aesEcb.encrypt(xorByteArrays(inputBlock, encryptedBlocks[index - 1])))));
+      return [].concat(...encryptedBlocks);
+    };
+
+    const my128CbcDecrypt = (input) => {
+      const aesEcb = new aesjs.ModeOfOperation.ecb(PASSWORD);
+      const inputBlocks = splitIntoBlocks(input, BLOCK_SIZE, input.length / BLOCK_SIZE);
+      inputBlocks[-1] = IV;
+      const decryptedBlocks = inputBlocks.map((block, index) => xorByteArrays(Array.from(aesEcb.decrypt(block)), inputBlocks[index - 1]));
+      return pkcs7unpad([].concat(...decryptedBlocks));
+    };
+
+    const escapeSensitiveChars = (input) => input.replace(/=/g, "%3d").replace(/;/g, "3b");
+    const encrypt = (input) =>
+      my128CbcEncrypt(
+        aesjs.utils.utf8.toBytes("comment1=cooking%20MCs;userdata=" + escapeSensitiveChars(input) + ";comment2=%20like%20a%20pound%20of%20bacon")
+      );
+    const isAdmin = (encryptedInput) => aesjs.utils.utf8.fromBytes(my128CbcDecrypt(encryptedInput)).includes(";admin=true;");
+
+    const makeAdmin = () => {
+      // assuming the attacker knows where userdata starts in the data undergoing encryption
+      const prependedStringLength = "comment1=cooking%20MCs;userdata=".length;
+      const userDataBlockIndex = Math.floor(prependedStringLength / BLOCK_SIZE);
+      const userDataBlockOffset = prependedStringLength % BLOCK_SIZE;
+      const adminString = ";admin=true";
+      const [adminBlockIndex, fillLength] =
+        userDataBlockOffset + adminString.length > BLOCK_SIZE
+          ? [userDataBlockIndex + 1, 2 * BLOCK_SIZE - userDataBlockOffset - adminString.length]
+          : [userDataBlockIndex, BLOCK_SIZE - userDataBlockOffset - adminString.length];
+      const xoredEquals = String.fromCharCode("=".charCodeAt(0) ^ 1);
+      const xoredSemicolon = String.fromCharCode(";".charCodeAt(0) ^ 1);
+      const craftedInput = "a".repeat(fillLength) + xoredSemicolon + "admin" + xoredEquals + "true";
+      const encryptedCraftedInput = encrypt(craftedInput);
+      const equalsByteOffsetInBlock = BLOCK_SIZE - "=true".length;
+      const semicolonByteOffsetInBlock = equalsByteOffsetInBlock - ";admin".length;
+      encryptedCraftedInput[BLOCK_SIZE * (adminBlockIndex - 1) + equalsByteOffsetInBlock] ^= 1;
+      encryptedCraftedInput[BLOCK_SIZE * (adminBlockIndex - 1) + semicolonByteOffsetInBlock] ^= 1;
+      return encryptedCraftedInput;
+    };
+
+    const encryptedAdminData = makeAdmin();
+    if (isAdmin(encryptedAdminData)) {
+      document.getElementById("output").innerText = JSON.stringify(encryptedAdminData);
+    } else {
+      alert("Failed to produce admin block");
+    }
+  </script>
+</body>
