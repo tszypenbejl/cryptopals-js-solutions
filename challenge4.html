@@ -8,6 +8,8 @@
   <body>
     <span id="output-message"></span>
     <script>
+      "use strict";
+
       const frequentLetterCodes = new Set("etaoinshrdlu ETAOINSHRDLU".split("").map((c) => c.charCodeAt(0)));
       const keyCandidates = [...Array(256).keys()];
 

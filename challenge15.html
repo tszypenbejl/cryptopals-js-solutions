@@ -6,6 +6,8 @@
 <body>
   <pre id="output"></pre>
   <script>
+    "use strict";
+
     const asciiToBytes = (str) => str.split("").map((c) => c.charCodeAt(0));
     const bytesToAscii = (bytes) => String.fromCharCode(...bytes);
 
@@ -23,7 +25,7 @@
       bytesToAscii(pkcs7unpad(asciiToBytes(validPaddingString)))
     )}\n`;
 
-    for (invalidPaddingString of ["ICE ICE BABY\x05\x05\x05\x05", "ICE ICE BABY\x01\x02\x03\x04"]) {
+    for (const invalidPaddingString of ["ICE ICE BABY\x05\x05\x05\x05", "ICE ICE BABY\x01\x02\x03\x04"]) {
       try {
         pkcs7unpad(asciiToBytes(invalidPaddingString));
         output.innerText += `FAIL Failed to discover invalid padding in ${JSON.stringify(invalidPaddingString)}\n`;

@@ -7,6 +7,8 @@
 <body>
   <span id="message"></span>
   <script>
+    "use strict";
+
     const range = (start, end) => [...Array(end - start).keys()].map((n) => n + start);
     const splitIntoBlocks = (arr, blockSize, blockCount) => range(0, blockCount).map((i) => arr.slice(i * blockSize, (i + 1) * blockSize));
 

@@ -9,6 +9,8 @@
   Encrypted admin data:
   <pre id="output"></pre>
   <script>
+    "use strict";
+
     const range = (start, end) => [...Array(end - start).keys()].map((n) => n + start);
     const splitIntoBlocks = (arr, blockSize, blockCount) => range(0, blockCount).map((i) => arr.slice(i * blockSize, (i + 1) * blockSize));
     const xorByteArrays = (array1, array2) => array1.map((byte1, index) => byte1 ^ array2[index % array2.length]);

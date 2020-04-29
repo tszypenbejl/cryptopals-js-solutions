@@ -8,6 +8,8 @@
 <body>
   <pre id="output"></pre>
   <script>
+    "use strict";
+
     const randomIntegerInRange = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
     const randomUint8Array = (size) => Uint8Array.from(Array(size), () => randomIntegerInRange(0, 255));
 

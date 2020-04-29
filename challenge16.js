@@ -1,3 +1,5 @@
+"use strict";
+
 const { createDecipheriv, createCipheriv } = require("crypto");
 
 const range = (start, end) => [...Array(end - start).keys()].map((n) => n + start);

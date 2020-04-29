@@ -1,3 +1,5 @@
+"use strict";
+
 const { createCipheriv, createDecipheriv } = require("crypto");
 
 const randomIntegerInRange = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;

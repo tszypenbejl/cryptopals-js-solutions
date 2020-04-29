@@ -1,3 +1,5 @@
+"use strict";
+
 const { createDecipheriv, createCipheriv } = require("crypto");
 const { promisify } = require("util");
 const readFileAsync = promisify(require("fs").readFile);

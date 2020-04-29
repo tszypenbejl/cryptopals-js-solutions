@@ -1,3 +1,5 @@
+"use strict";
+
 const pkcs7pad = (data, blockLength) => {
   const trailingBytesCount = data.length % blockLength;
   const padding = trailingBytesCount === 0 ? blockLength : blockLength - trailingBytesCount;

@@ -7,6 +7,7 @@
   <body>
     <span id="output"></span>
     <script>
+      "use strict";
       const fromHexStr = (hexStr) => hexStr.match(/../g).map((s) => parseInt(s, 16));
       const toHexStr = (byteArray) => byteArray.map((byte) => byte.toString(16).padStart(2, 0)).join("");
       const input = fromHexStr("1c0111001f010100061a024b53535009181c");

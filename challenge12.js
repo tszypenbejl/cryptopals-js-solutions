@@ -1,3 +1,5 @@
+"use strict";
+
 const { createCipheriv } = require("crypto");
 
 const inputText = `Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg
