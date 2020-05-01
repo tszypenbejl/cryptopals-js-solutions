@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<head lang="en">
+  <meta charset="utf-8" />
+  <title>Challenge 18</title>
+  <script src="7.txt.js"></script>
+  <script src="3rd-party/rickmoo-aes.js"></script>
+  <!-- from https://github.com/ricmoo/aes-js (MIT license) -->
+</head>
+<body>
+  <span id="output"></span>
+  <script>
+    "use strict";
+
+    const input = atob("L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ==")
+      .split("")
+      .map((c) => c.charCodeAt(0));
+
+    const range = (start, end) => [...Array(end - start).keys()].map((n) => n + start);
+    const xorByteArrays = (array1, array2) => array1.map((byte1, index) => byte1 ^ array2[index % array2.length]);
+
+    const numToUInt64LE = (num) =>
+      range(0, 64 / 8).map(() => {
+        const thisByte = num % 256;
+        num = Math.floor(num / 256);
+        return thisByte;
+      });
+
+    const BLOCK_SIZE = 128 / 8;
+
+    const aesEcb = new aesjs.ModeOfOperation.ecb(aesjs.utils.utf8.toBytes("YELLOW SUBMARINE"));
+
+    const ctrEncryptOrDecrypt = (input) => {
+      const keyStreamLength = BLOCK_SIZE * Math.ceil(input.length / BLOCK_SIZE);
+      const counterBlockPrepadding = Array(BLOCK_SIZE - 64 / 8).fill(0);
+      const keyStream = range(0, keyStreamLength).flatMap((counter) => [...aesEcb.encrypt(counterBlockPrepadding.concat(numToUInt64LE(counter)))]);
+      return xorByteArrays(input, keyStream);
+    };
+
+    document.getElementById("output").innerText = new TextDecoder().decode(Uint8Array.from(ctrEncryptOrDecrypt(input)));
+  </script>
+</body>
