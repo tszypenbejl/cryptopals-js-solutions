@@ -31,16 +31,16 @@ const pkcs7pad = (data, blockLength) => {
 const pkcs7unpad = (data) => {
   if (data.length === 0) throw new Error("Invalid padding");
   const paddingByte = data[data.length - 1];
-  if (paddingByte == 0) throw new Error("Invalid padding");
-  if (data.length < paddingByte || data.slice(data.length - paddingByte).some((byte) => byte !== paddingByte)) throw new Error("Invalid padding");
+  if (paddingByte == 0 || data.length < paddingByte || data.slice(data.length - paddingByte).some((byte) => byte !== paddingByte))
+    throw new Error("Invalid padding");
   return data.slice(0, data.length - paddingByte);
 };
 
 const BLOCK_SIZE = 128 / 8; // bytes
 const PASSWORD = randomUint8Array(BLOCK_SIZE);
-const IV = randomUint8Array(BLOCK_SIZE);
 
-const my128CbcEncrypt = (input, iv) => {
+const my128CbcEncrypt = (input) => {
+  const iv = randomUint8Array(BLOCK_SIZE);
   const ecbCipher = createCipheriv("aes-128-ecb", PASSWORD, null).setAutoPadding(false);
   const paddedInput = pkcs7pad(input, BLOCK_SIZE);
   const inputBlocks = splitIntoBlocks(paddedInput, BLOCK_SIZE, paddedInput.length / BLOCK_SIZE);
@@ -48,7 +48,7 @@ const my128CbcEncrypt = (input, iv) => {
   encryptedBlocks[-1] = iv;
   inputBlocks.forEach((inputBlock, index) => encryptedBlocks.push(ecbCipher.update(xorByteArrays(inputBlock, encryptedBlocks[index - 1]))));
   ecbCipher.final();
-  return Buffer.concat(encryptedBlocks);
+  return [Buffer.concat(encryptedBlocks), iv];
 };
 
 const my128CbcDecrypt = (input, iv) => {
@@ -59,8 +59,6 @@ const my128CbcDecrypt = (input, iv) => {
   ecbDecipher.final();
   return pkcs7unpad(Buffer.concat(decryptedBlocks));
 };
-
-const encryptedSecretText = my128CbcEncrypt(Buffer.from(inputStrings[randomIntegerInRange(0, inputStrings.length - 1)], "base64"), IV);
 
 const isPaddingOk = (encryptedText, iv) => {
   try {
@@ -124,7 +122,11 @@ const revealText = (encryptedText, iv, paddingOracleFunction) => {
     decryptRestOfTheBlock(blockToDecrypt, craftedPreviousBlock, 1);
   }
 
-  return Buffer.from(decryptedBytes).toString();
+  return Buffer.from(decryptedBytes);
 };
 
-console.log(revealText(encryptedSecretText, IV, isPaddingOk));
+const secretText = Buffer.from(inputStrings[randomIntegerInRange(0, inputStrings.length - 1)], "base64");
+const [encryptedSecretText, iv] = my128CbcEncrypt(secretText);
+const decryptedSecretText = revealText(encryptedSecretText, iv, isPaddingOk);
+console.log(decryptedSecretText.toString());
+if (decryptedSecretText.compare(secretText) !== 0) throw new Error("Did not really decrypt the text");
