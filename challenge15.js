@@ -3,6 +3,7 @@
 const pkcs7unpad = (data) => {
   if (data.length === 0) throw new Error("Invalid padding");
   const paddingByte = data[data.length - 1];
+  if (paddingByte == 0) throw new Error("Invalid padding");
   if (data.length < paddingByte || data.slice(data.length - paddingByte).some((byte) => byte !== paddingByte)) throw new Error("Invalid padding");
   return data.slice(0, data.length - paddingByte);
 };
