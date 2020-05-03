@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<head lang="en">
+  <meta charset="utf-8" />
+  <title>Challenge 20</title>
+  <script src="20.txt.js"></script>
+  <script src="3rd-party/rickmoo-aes.js"></script>
+  <!-- from https://github.com/ricmoo/aes-js (MIT license) -->
+</head>
+<body>
+  <table id="output">
+    <tr>
+      <th>diff</th>
+      <th>decrypted</th>
+      <th>original</th>
+    </tr>
+    <tr>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+  </table>
+  <script>
+    "use strict";
+
+    const range = (start, end) => [...Array(end - start).keys()].map((n) => n + start);
+    const xorByteArrays = (array1, array2) => array1.map((byte1, index) => byte1 ^ array2[index % array2.length]);
+    const randomIntegerInRange = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const randomUint8Array = (size) => Uint8Array.from(Array(size), () => randomIntegerInRange(0, 255));
+
+    const numToUInt64LE = (num) =>
+      range(0, 64 / 8).map(() => {
+        const thisByte = num % 256;
+        num = Math.floor(num / 256);
+        return thisByte;
+      });
+
+    const BLOCK_SIZE = 128 / 8;
+    const PASSWORD = Uint8Array.of(101, 234, 65, 108, 134, 215, 206, 43, 14, 250, 62, 251, 31, 157, 64, 1);
+    // A fixed PASSWORD, so I get same results every time and can make some manual changes to the algorithm-determined after looking at decryption results
+
+    const aesEcb = new aesjs.ModeOfOperation.ecb(PASSWORD);
+
+    const ctrEncryptOrDecrypt = (input) => {
+      const keyStreamLength = BLOCK_SIZE * Math.ceil(input.length / BLOCK_SIZE);
+      const counterBlockPrepadding = Array(BLOCK_SIZE - 64 / 8).fill(0);
+      const keyStream = range(0, keyStreamLength).flatMap((counter) => [...aesEcb.encrypt(counterBlockPrepadding.concat(numToUInt64LE(counter)))]);
+      return xorByteArrays(input, keyStream);
+    };
+
+    const guessKeyStream = (encryptedTexts) => {
+      const frequentLetterCodes = new Set("etaoinshrdlu ETAOINSHRDLU".split("").map((c) => c.charCodeAt(0)));
+      const lowercaseLetterCodes = new Set(range("a".charCodeAt(0), "z".charCodeAt(0) + 1));
+      const uppercaseLetterCodes = new Set(range("A".charCodeAt(0), "Z".charCodeAt(0) + 1));
+      const unlikelyCodes = new Set("^@#+".split(0).map((c) => c.charCodeAt(0)));
+
+      const scoreXorMask = (xorMask, encryptedBytes) => {
+        const decryptedBytes = encryptedBytes.map((byte) => byte ^ xorMask);
+        const awardScore = (multiplier, codeSet) => multiplier * decryptedBytes.filter((byte) => codeSet.has(byte)).length;
+        return awardScore(8, frequentLetterCodes) + awardScore(4, lowercaseLetterCodes) + awardScore(1, uppercaseLetterCodes) + awardScore(-12, unlikelyCodes);
+      };
+
+      const allExpectedBytes = new Set(range(" ".charCodeAt(0), "~".charCodeAt(0) + 1));
+      const keyStreamLengthNeeded = Math.max(...encryptedTexts.map((text) => text.length));
+      const keyStream = range(0, keyStreamLengthNeeded).map((i) => {
+        const encryptedBytes = encryptedTexts.map((text) => text[i]).filter((byte) => byte != undefined);
+        const possibleXorMasks = range(0, 256).filter((mask) =>
+          encryptedBytes.map((byte) => byte ^ mask).every((maskedByte) => allExpectedBytes.has(maskedByte))
+        );
+        if (possibleXorMasks.length === 0) throw new Error("allExpectedBytes needs to include more ascii codes");
+        return possibleXorMasks
+          .map((mask) => ({ mask, score: scoreXorMask(mask, encryptedBytes) }))
+          .reduce((bestSoFar, current) => (current.score > bestSoFar.score ? current : bestSoFar), { score: -1 }).mask;
+      });
+      return keyStream;
+    };
+
+    const inputTexts = inputText.split("\n").map((line) =>
+      atob(line)
+        .split("")
+        .map((c) => c.charCodeAt(0))
+    );
+
+    const encryptedTexts = inputTexts.map((t) => ctrEncryptOrDecrypt(t));
+
+    const keyStream = guessKeyStream(encryptedTexts);
+
+    const resultTable = document.getElementById("output");
+    range(1, encryptedTexts.length).forEach(() => resultTable.appendChild(resultTable.rows[1].cloneNode(true)));
+    encryptedTexts.forEach((encryptedText, index) => {
+      const decryptedText = String.fromCharCode(...xorByteArrays(encryptedText, keyStream));
+      const originalText = String.fromCharCode(...inputTexts[index]);
+      if (decryptedText.length !== originalText.length) alert("Decrypted text has wrong length"); // not expecting that to happen
+      const diffCount = decryptedText.split("").filter((c, i) => c !== originalText[i]).length;
+      const resultRow = resultTable.rows[index + 1];
+      resultRow.cells[0].innerText = diffCount;
+      resultRow.cells[1].innerText = decryptedText;
+      resultRow.cells[2].innerText = originalText;
+    });
+  </script>
+</body>
