@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<head lang="en">
+  <meta charset="utf-8" />
+  <title>Challenge 21</title>
+</head>
+<body>
+  <span id="output"></span>
+  <script>
+    "use strict";
+
+    class MyMt19937 {
+      constructor(seed) {
+        const class_ = this.constructor;
+
+        this.index = class_.n;
+        this.mt = [BigInt(seed)];
+        for (let i = 1n; i < class_.n; ++i) {
+          this.mt[i] = class_.lowestWBits & (class_.f * (this.mt[i - 1n] ^ (this.mt[i - 1n] >> (class_.w - 2n))) + i);
+        }
+      }
+
+      extractNumber() {
+        const class_ = this.constructor;
+
+        if (this.index === class_.n) this.twist();
+
+        let y = this.mt[this.index];
+        y = y ^ ((y >> class_.u) & class_.d);
+        y = y ^ ((y << class_.s) & class_.b);
+        y = y ^ ((y << class_.t) & class_.c);
+        y = y ^ (y >> class_.l);
+
+        ++this.index;
+        return Number(class_.lowestWBits & y);
+      }
+
+      twist() {
+        const class_ = this.constructor;
+
+        for (let i = 0n; i < class_.n; ++i) {
+          const x = (this.mt[i] & class_.upperMask) + (this.mt[(i + 1n) % class_.n] & class_.lowerMask);
+          const xA = (x >> 1n) ^ (x % 2n !== 0n ? class_.a : 0n);
+          this.mt[i] = this.mt[(i + class_.m) % class_.n] ^ xA;
+        }
+        this.index = 0n;
+      }
+    }
+
+    MyMt19937.w = 32n;
+    MyMt19937.n = 624n;
+    MyMt19937.m = 397n;
+    MyMt19937.r = 31n;
+    MyMt19937.a = 0x9908b0dfn;
+    MyMt19937.u = 11n;
+    MyMt19937.d = 0xffffffffn;
+    MyMt19937.s = 7n;
+    MyMt19937.b = 0x9d2c5680n;
+    MyMt19937.t = 15n;
+    MyMt19937.c = 0xefc60000n;
+    MyMt19937.l = 18n;
+    MyMt19937.f = 1812433253n;
+
+    MyMt19937.lowestWBits = (1n << MyMt19937.w) - 1n;
+    MyMt19937.lowerMask = (1n << MyMt19937.r) - 1n;
+    MyMt19937.upperMask = MyMt19937.lowestWBits & ~MyMt19937.lowerMask;
+
+    const mt = new MyMt19937(123);
+    document.getElementById("output").innerHTML = Array(10)
+      .fill(0)
+      .map(() => mt.extractNumber())
+      .join("<br/>");
+  </script>
+</body>
