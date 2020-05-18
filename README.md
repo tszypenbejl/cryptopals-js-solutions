@@ -6,4 +6,4 @@ Every solution is self-contained in the sense there is no shared code used by so
 
 The goal is to keep the code brief, functional-style, simple, and performing reasonably well (in that order).
 
-So far only solutions to the challenges from [Set 1](https://cryptopals.com/sets/1) and [Set 2](https://cryptopals.com/sets/2) are available.
+So far only solutions to the challenges from [Set 1](https://cryptopals.com/sets/1), [Set 2](https://cryptopals.com/sets/2) and [Set 3](https://cryptopals.com/sets/3) are available.
