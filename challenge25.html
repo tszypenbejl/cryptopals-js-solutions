@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<head lang="en">
+  <meta charset="utf-8" />
+  <title>Challenge 25</title>
+  <script src="25.txt.js"></script>
+  <script src="3rd-party/rickmoo-aes.js"></script>
+  <!-- from https://github.com/ricmoo/aes-js (MIT license) -->
+</head>
+<body>
+  <pre id="output"></pre>
+  <script>
+    "use strict";
+
+    const range = (start, end) => [...Array(end - start).keys()].map((n) => n + start);
+    const xorByteArrays = (array1, array2) => array1.map((byte1, index) => byte1 ^ array2[index % array2.length]);
+    const randomIntegerInRange = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const randomUint8Array = (size) => Uint8Array.from(Array(size), () => randomIntegerInRange(0, 255));
+
+    const BLOCK_SIZE = 128 / 8;
+
+    const INPUT_FILE_KEY = aesjs.utils.utf8.toBytes("YELLOW SUBMARINE");
+    const RANDOM_KEY = randomUint8Array(BLOCK_SIZE);
+
+    const ecbDecrypt = (input, key) => {
+      const aesEcb = new aesjs.ModeOfOperation.ecb(key);
+      return aesjs.padding.pkcs7.strip(aesEcb.decrypt(input));
+    };
+
+    const numToUInt64LE = (num) =>
+      range(0, 64 / 8).map(() => {
+        const thisByte = num % 256;
+        num = Math.floor(num / 256);
+        return thisByte;
+      });
+
+    const ctrEncryptOrDecrypt = (input, key) => {
+      const aesEcb = new aesjs.ModeOfOperation.ecb(key);
+      const keyStreamBlockCount = Math.ceil(input.length / BLOCK_SIZE);
+      const counterBlockPrepadding = Array(BLOCK_SIZE - 64 / 8).fill(0);
+      const keyStream = range(0, keyStreamBlockCount).flatMap((counter) => [...aesEcb.encrypt(counterBlockPrepadding.concat(numToUInt64LE(counter)))]);
+      return xorByteArrays(input, keyStream);
+    };
+
+    const editCiphertext = (ciphertext, offset, newText) => {
+      // ciphertext and newText are, of course, Buffers
+      const editedCiphertextLength = Math.max(ciphertext.length, offset + newText.length);
+      // pass all-zero input to ctrEncryptOrDecrypt to get actual keyStream
+      const keyStream = ctrEncryptOrDecrypt(Array(editedCiphertextLength).fill(0), RANDOM_KEY);
+      const newTextEncrypted = xorByteArrays(newText, keyStream.slice(offset));
+      return [].concat(ciphertext.slice(0, offset), newTextEncrypted, ciphertext.slice(offset + newText.length));
+    };
+
+    const input = [
+      ...ecbDecrypt(
+        atob(inputText)
+          .split("")
+          .map((c) => c.charCodeAt(0)),
+        INPUT_FILE_KEY
+      ),
+    ];
+    const encryptedInput = ctrEncryptOrDecrypt(input, RANDOM_KEY);
+    const editInputToRevealKeystream = Array(encryptedInput.length).fill("A".charCodeAt(0));
+    const keyStream = xorByteArrays(editCiphertext(encryptedInput, 0, editInputToRevealKeystream), editInputToRevealKeystream);
+    const inputRevealed = xorByteArrays(encryptedInput, keyStream);
+    document.getElementById("output").innerText = new TextDecoder().decode(Uint8Array.from(inputRevealed));
+    if (JSON.stringify(inputRevealed) !== JSON.stringify(input)) alert("Failed to decrypt input correctly");
+  </script>
+</body>
