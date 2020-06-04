@@ -41,9 +41,9 @@
     const aesEcb = new aesjs.ModeOfOperation.ecb(PASSWORD);
 
     const ctrEncryptOrDecrypt = (input) => {
-      const keyStreamLength = BLOCK_SIZE * Math.ceil(input.length / BLOCK_SIZE);
+      const keyStreamBlockCount = Math.ceil(input.length / BLOCK_SIZE);
       const counterBlockPrepadding = Array(BLOCK_SIZE - 64 / 8).fill(0);
-      const keyStream = range(0, keyStreamLength).flatMap((counter) => [...aesEcb.encrypt(counterBlockPrepadding.concat(numToUInt64LE(counter)))]);
+      const keyStream = range(0, keyStreamBlockCount).flatMap((counter) => [...aesEcb.encrypt(counterBlockPrepadding.concat(numToUInt64LE(counter)))]);
       return xorByteArrays(input, keyStream);
     };
 
